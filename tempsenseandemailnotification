@@ -1,0 +1,78 @@
+import board
+import digitalio
+import adafruit_max31855
+import time
+import datetime
+import smtplib, ssl
+
+port = 465  # For SSL
+
+
+spi=board.SPI()#no clue, datasheets said to do it cs = digitalio.DigitalInOut(board.D5)#no clue sensor = adafruit_max31855.MAX31855(spi, cs)#sensor code address i=0#set for a count while running as placekeepers
+j=0
+k=0
+temps= []#empty list for compilations
+while True:
+    tempc=sensor.temperature#in celcius directly from sensor
+    tempf=(tempc*9/5)+32 #converts to fahrenheit
+    print(datetime.datetime.now(), tempf)
+    i+=1#add to the temperature readings count
+    temps.append(tempf)#adds the temperature list
+    if (i%12)==0:
+        average=sum(temps)/len(temps)
+        print("the average temp for the past 3 minutes is", average)
+        if average<100:
+            smtp_server = "smtp.gmail.com"
+            sender_email = "email@gmail.com"  # Enter your address, must be gmail
+            receiver_email = "email@gmail.com"  # Enter receiver address, can be anything
+            password = "password"#enter your password
+            message = ""            Subject: ALERT Water temperature issue (too low) 
+
+            The water temperature is too low.""
+
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, receiver_email, message)
+            print("email sent")
+            j+=1#add to the count
+            temps.clear()#clears list
+        if average>110:
+            smtp_server = "smtp.gmail.com"
+            sender_email = "email@gmail.com"  # Enter your address, must be gmail
+            receiver_email = "email@gmail.com"  # Enter receiver address, can be anything
+            password = "password"#enter your password
+            message = ""            Subject: ALERT Water temperature issue (too high)
+
+            The water temperature is too high!""
+
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, receiver_email, message)
+            print("email sent")
+            k+=1
+            temps.clear()#clears list
+        if i%5760 and j==0 and k==0:#if a day has gone by without something going wrong
+            smtp_server = "smtp.gmail.com"
+            sender_email = "emai1@gmail.com"  # Enter your address, must be gmail
+            receiver_email = "email@gmail.com"  # Enter receiver address, can be anything
+            password = "password"#enter your password
+            message = ""            Subject: no temperature issues for a full day
+
+            congrats! all systems green for a full day :D""
+
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, receiver_email, message)
+            print("email sent") #confirmation
+            print(j,k)
+            temps.clear()#clears the running list so more averages can be checked
+        if i%5760:#reset after a day
+            print(i,j,k)
+            i=0
+            j=0
+            k=0     
+    
+    time.sleep(15)#the 15 second pause between readings
